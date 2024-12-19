@@ -48,7 +48,7 @@ int main() {
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
-	for (double i = 0; ; i += 0.01) {
+	for (double i = 0; i < t_max ; i += 0.01) {
 		pp.next();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed = currentTime - lastTime;
@@ -60,13 +60,13 @@ int main() {
 		glVertex2d(0, 0.5);
 
 		for (int j = 0; j < n; j++) {
-			glVertex2d(20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S + 0.5);
+			glVertex2d(10 * pp.posx[j] / window_dim.S, 10 * pp.posy[j] / window_dim.S + 0.5);
 		}
 
 		glEnd();
 		circle({0, 0.5}, 0.01);
 		for (int j = 0; j < n; j++) {
-			circle({20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S + 0.5}, 0.01);
+			circle({10 * pp.posx[j] / window_dim.S, 10 * pp.posy[j] / window_dim.S + 0.5}, 0.01);
 		}
 
 		glfwSwapBuffers(window);

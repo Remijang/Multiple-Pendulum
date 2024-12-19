@@ -195,9 +195,9 @@ void pendulum::init () {
 
 	std::random_device rd;
 	std::mt19937 generator(rd());
-	std::uniform_real_distribution<> rnd_1(((double)50) / n, ((double)75) / n);
+	std::uniform_real_distribution<> rnd_1(((double)100 / (double)n)+0.5, ((double)150 / (double)n)+0.5);
 	std::uniform_real_distribution<> rnd_2(-M_PI / 2, M_PI / 2);
-	std::uniform_real_distribution<> rnd_3(-1 / n, 1 / n);
+	std::uniform_real_distribution<> rnd_3(-1.0 / n, 1.0 / n);
 	for (int i = 0; i < n; ++i) theta[i]  = rnd_2(generator);
 	for (int i = 0; i < n; ++i) omega[i]  = rnd_3(generator);
 	for (int i = 0; i < n; ++i) mass[i]   = rnd_1(generator);
