@@ -9,7 +9,7 @@ extern "C" {
 
 	using namespace cooperative_groups;
 
-	__device__ void derivation(thread_group g, int n, double* st, double* ret, double* mass, double* length, double* suffix_mass, double** arr, double* y, double* ans);
+	__device__ void derivation(grid_group g, int n, double* st, double* ret, double* mass, double* length, double* suffix_mass, double* arr, double* y, double* ans);
 
 	__device__ void rk4_func1(grid_group g, double *st, const double *dt, double* k, double *res, int n);
 

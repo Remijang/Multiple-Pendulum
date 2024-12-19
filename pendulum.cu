@@ -21,23 +21,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-/*
- * derivation function prototype
- *
- * 1. init_cs (const state *st, double *c, double *s, int n)
- * calculate c, s
- *
- * 2. init_arr (const state *st, const sys *ss, double **arr, double *y, int n)
- * calculate arr, y
- *
- * 3. gauss (double **arr, double *y, double *ans, int n)
- * solve the equation
- *
- * 4. assign (double *ans, state *ret, int n)
- * assign the derivation value
- *
- */
-
 __device__ void derivation (grid_group g, int n, double* st, double* ret, 
 		double* mass, double* length, double* suffix_mass, 
 		double* arr, double* y, double* ans) {
@@ -58,10 +41,8 @@ __device__ void derivation (grid_group g, int n, double* st, double* ret,
 	for (int i = 0; i < n; ++i) {
 		if (idx > i && idx < n) {
 			double d;
-			/*
-			if (arr[i * n + i] == 0.0) d = 1e100;
-			*/
-			d = arr[idx * n + i] / arr[i * n + i];
+			if (arr[i * n + i] == 0.0) d = 1e3;
+			else d = arr[idx * n + i] / arr[i * n + i];
 			for (int j = i; j < n; ++j) arr[idx * n + j] -= d * arr[i * n + j];
 			y[idx] -= d * y[i];
 		}
@@ -70,10 +51,8 @@ __device__ void derivation (grid_group g, int n, double* st, double* ret,
 
 	for (int i = n - 1; i >= 0; --i) {
 		if (idx == i) {
-			/*
-			if (arr[idx * n + idx] == 0.0) ans[idx] = 1e100;
-			*/
-			ans[idx] = y[idx] / arr[idx * n + idx];
+			if (arr[idx * n + idx] == 0.0) ans[idx] = 1e3;
+			else ans[idx] = y[idx] / arr[idx * n + idx];
 		}
 		g.sync();
 		if (idx < i) y[idx] -= arr[idx * n + i] * ans[i];
@@ -176,7 +155,7 @@ void pendulum::init () {
 	std::mt19937 generator(rd());
 	std::uniform_real_distribution<> rnd_1(((double)50) / n, ((double)75) / n);
 	std::uniform_real_distribution<> rnd_2(0, M_PI);
-	std::uniform_real_distribution<> rnd_3(-1, 1);
+	std::uniform_real_distribution<> rnd_3(-1 / n, 1 / n);
 	for (int i = 0; i < n; ++i) theta[i]  = rnd_2(generator);
 	for (int i = 0; i < n; ++i) omega[i]  = rnd_3(generator);
 	for (int i = 0; i < n; ++i) mass[i]   = rnd_1(generator);
@@ -233,8 +212,9 @@ void pendulum::destory () {
 void pendulum::update () {
 	double tmpx = 0.0, tmpy = 0.0;
 	gpuErrchk( cudaMemcpy(theta, d_theta, sizeof(double) * n, cudaMemcpyDeviceToHost) );
+	gpuErrchk( cudaMemcpy(omega, d_omega, sizeof(double) * n, cudaMemcpyDeviceToHost) );
 	for (int i = 0; i < n; ++i)
-		std::cerr << theta[i] << " ";
+		std::cerr << omega[i] << " ";
 	std::cerr << std::endl;
 	for (int i = 0; i < n; ++i) {
 		tmpx += length[i] * sin(theta[i]);
