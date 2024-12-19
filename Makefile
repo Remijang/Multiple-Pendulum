@@ -1,12 +1,15 @@
-CXX = g++
-CXXFLAGS = -std=c++17 -O3 -pthread -lm -lGL -lGLU -lglfw -lglut
+NVFLAGS := -std=c++11 -O3 -use_fast_math -ftz=true -rdc=true
+TARGET := main
+LINK := -lGL -lglfw -lGLU
 
-all: main
+.PHONY: all
+all: $(TARGET)
 
-main: main.cpp
-	$(CXX) -o main main.cpp $(CXXFLAGS) 
+$(TARGET): pendulum.o main.cu
+	nvcc $(NVFLAGS) -o main main.cu pendulum.o $(LINK)
+
+pendulum.o: pendulum.cu
+	nvcc $(NVFLAGS) -c pendulum.cu
 
 clean:
-	rm -f main
-
-.PHONY: all clean
+	rm -rf main *.o
