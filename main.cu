@@ -7,16 +7,14 @@
 #define F first
 #define S second
 
-const float TARGET_FPS = 60.0f;
+const float TARGET_FPS = 30.0f;
 const float FRAME_TIME = 1.0f / TARGET_FPS;
 
 void circle(const std::pair<double, double>& center, double radius) {
 	const int segments = 20;
-
 	double delta = 2 * M_PI / segments;
 	double c     = std::cos(delta);
 	double s     = std::sin(delta);
-
 	std::pair<double, double> xy{radius, 0};
 
 	glColor3d(0, 0, 0);
@@ -24,7 +22,6 @@ void circle(const std::pair<double, double>& center, double radius) {
 	for (int i = 0; i < segments; ++i) {
 		glVertex2d(xy.first + center.first, xy.second + center.second);
 		glVertex2d(center.first, center.second);
-
 		xy = {c * xy.first - s * xy.second, s * xy.first + c * xy.second};
 	}
 	glEnd();
@@ -52,15 +49,15 @@ int main() {
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
 	for (double i = 0; ; i += 0.01) {
+		pp.next();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed = currentTime - lastTime;
+		std::cerr << elapsed.count() << std::endl;
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glBegin(GL_LINE_STRIP);
 		glColor3d(1, 0, 0);
 		glVertex2d(0, 0);
-
-		pp.next();
 
 		for (int j = 0; j < n; j++) {
 			glVertex2d(20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S);
