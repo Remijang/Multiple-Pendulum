@@ -8,7 +8,10 @@
 #define F first
 #define S second
 
-void circle(const std::pair<double, double>& center, double radius) noexcept {
+const float TARGET_FPS = 60.0f;
+const float FRAME_TIME = 1.0f / TARGET_FPS;
+
+void circle(const std::pair<double, double>& center, double radius) {
     const int segments = 20;
 
     double delta = 2 * M_PI / segments;
@@ -35,7 +38,7 @@ int main() {
 	int t_max;
     std::cin >> t_max;
     
-    std::pair<int,int> window_dim={640,480};
+    std::pair<int,int> window_dim={1080,1080};
     glfwInit();
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -48,22 +51,27 @@ int main() {
 
 	pendulum pp(n);
 
-	int step = 10;
+	int step = 17;
+
+    auto lastTime = std::chrono::high_resolution_clock::now();
 
 	for(double i = 0; ; i += pp::dt * step){
+		auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> elapsed = currentTime - lastTime;
+
 		glClear(GL_COLOR_BUFFER_BIT);
         glBegin(GL_LINE_STRIP);
         glColor3d(1,0,0);
         glVertex2d(0,0);
         for(double j=0;j<n;j++)
         {
-            glVertex2d(10*pp.pos.x[j]/window_dim.S,10*pp.pos.y[j]/window_dim.S);
+            glVertex2d(20*pp.pos.x[j]/window_dim.S,20*pp.pos.y[j]/window_dim.S);
         }
         glEnd();
         circle({0,0},0.01);
         for(double j=0;j<n;j++)
         {
-            circle({10*pp.pos.x[j]/window_dim.S,10*pp.pos.y[j]/window_dim.S},0.01);
+            circle({20*pp.pos.x[j]/window_dim.S,20*pp.pos.y[j]/window_dim.S},0.01);
         }
 
 		for(int i = 0; i < step; ++i)
@@ -71,6 +79,13 @@ int main() {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+		float frameTime = elapsed.count();
+        if (frameTime < FRAME_TIME) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(int((FRAME_TIME - frameTime) * 1000)));
+        }
+
+        lastTime = currentTime;
 	}
 
     glfwDestroyWindow(window);

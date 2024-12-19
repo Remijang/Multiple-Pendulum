@@ -7,7 +7,8 @@
 
 namespace pp {
 	const double g = 9.81;
-	const double dt = 0.005;
+	const double dt = 0.001;
+	const double b = 0.5;
 }
 
 struct sys {
@@ -91,12 +92,12 @@ state derivation (const state &st, const sys &ss) {
         y[i] = 0.0;
 		for(int j = i; j < n; ++j) {
             for(int k = 0; k <= j; ++k) {
-				/*
                 arr[i][k] += ss.mass[j] * ss.length[k] * (c[i] * c[k] + s[i] * s[k]);
                 y[i]      += ss.mass[j] * ss.length[k] * st.omega[k] * st.omega[k] * (s[i] * c[k] - c[i] * s[k]);
-				*/
+				/*
                 arr[i][k] += ss.mass[j] * ss.length[k] * cos(st.theta[i] - st.theta[k]);
                 y[i]      += ss.mass[j] * ss.length[k] * st.omega[k] * st.omega[k] * sin(st.theta[i] - st.theta[k]);
+				*/
             }
             y[i] += ss.mass[j] * pp::g * s[i];
 		}
@@ -121,7 +122,7 @@ state derivation (const state &st, const sys &ss) {
     state ret(n);
     for(int i = 0; i < n; ++i) {
         ret.theta[i] = st.omega[i];
-        ret.omega[i] = ans[i];
+        ret.omega[i] = ans[i] /*- pp::b * st.omega[i] / ss.mass[i] */;
     }
 
     return ret;
