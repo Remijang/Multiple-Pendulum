@@ -48,11 +48,17 @@ int main() {
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
-	for (double i = 0; i < t_max ; i += 0.01) {
+	double total = 0.0;
+	int count = 0;
+	for (double i = 0; i < t_max ; i += FRAME_TIME) {
 		pp.next();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed = currentTime - lastTime;
+#ifdef DEBUG
 		std::cerr << elapsed.count() << std::endl;
+#endif
+		total += elapsed.count();
+		count ++;
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glBegin(GL_LINE_STRIP);
@@ -79,6 +85,8 @@ int main() {
 
 		lastTime = currentTime;
 	}
+
+	std::cerr << total / count << std::endl;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

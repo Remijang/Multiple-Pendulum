@@ -7,9 +7,9 @@ using namespace cooperative_groups;
 namespace pp {
 	const double g = 9.81;
 	const double dt = 0.008;
-	const double b = 0.5;
 	const int    count = 4;
 	const double eps = 0.01;
+	//const double b = 0.5;
 }
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -256,9 +256,11 @@ void pendulum::update () {
 	double tmpx = 0.0, tmpy = 0.0;
 	gpuErrchk( cudaMemcpy(theta, d_theta, sizeof(double) * n, cudaMemcpyDeviceToHost) );
 	gpuErrchk( cudaMemcpy(omega, d_omega, sizeof(double) * n, cudaMemcpyDeviceToHost) );
+#ifdef DEBUG
 	for (int i = 0; i < n; ++i)
 		std::cerr << omega[i] << " ";
 	std::cerr << std::endl;
+#endif
 	for (int i = 0; i < n; ++i) {
 		tmpx += length[i] * sin(theta[i]);
 		tmpy -= length[i] * cos(theta[i]);
