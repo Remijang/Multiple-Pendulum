@@ -9,6 +9,7 @@ namespace pp {
 	const double dt = 0.008;
 	const double b = 0.5;
 	const int    count = 4;
+	const double eps = 0.001;
 }
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -23,8 +24,10 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 __device__ void derivation (grid_group g, int n, double* st, double* ret, 
 		double* mass, double* length, double* suffix_mass, 
-		double* arr, double* y, double* ans) {
+		double* arr, double* arr2, double* arr3, double* arr4, 
+		double* y, double* ans) {
 	int idx = g.thread_rank();
+	int stride = g.size();
 	double c = cos(st[idx]), s = sin(st[idx]);
 
 	if (idx < n) {
@@ -36,28 +39,64 @@ __device__ void derivation (grid_group g, int n, double* st, double* ret,
 		y[idx] += suffix_mass[idx] * pp::g * s;
 		y[idx] *= -1;
 	}
+
 	g.sync();
-	
+
+	if (idx < n) {
+		for (int i = 0; i < n; ++i) arr2[idx * n + i] = arr[i * n + idx];
+		for (int i = 0; i < n; ++i) arr4[idx * n + i] = 0;
+		arr4[idx * n + idx] = 1;
+	}
+
+	g.sync();
+
+	int t = idx;
+
+	while (t < n * n) {
+		int x = t / n, y = t % n;
+		double sum = 0.0;
+		for (int i = 0; i < n; ++i) sum += arr2[x * n + i] * arr2[y * n + i];
+		arr3[t] = sum;
+		t += stride;
+	}
+
+	g.sync();
+
 	for (int i = 0; i < n; ++i) {
-		if (idx > i && idx < n) {
-			double d;
-			if (arr[i * n + i] == 0.0) d = 1e3;
-			else d = arr[idx * n + i] / arr[i * n + i];
-			for (int j = i; j < n; ++j) arr[idx * n + j] -= d * arr[i * n + j];
-			y[idx] -= d * y[i];
+		if (idx < n && idx != i) {
+			double d = arr3[idx * n + i] / arr3[i * n + i];
+			if (arr3[i * n + i] < pp::eps) d = 0.0;
+			for (int j = i; j < n; ++j) {
+				arr3[idx * n + j] -= d * arr3[i * n + j];
+			}
+			for (int j = 0; j < n; ++j) {
+				arr4[idx * n + j] -= d * arr4[i * n + j];
+			}
 		}
 		g.sync();
 	}
 
-	for (int i = n - 1; i >= 0; --i) {
-		if (idx == i) {
-			if (arr[idx * n + idx] == 0.0) ans[idx] = 1e3;
-			else ans[idx] = y[idx] / arr[idx * n + idx];
+	t = idx;
+
+	while (t < n * n) {
+		int x = t / n, y = t % n;
+		double sum = 0.0;
+		for (int i = 0; i < n; ++i) {
+			if (arr3[x * n + x] >= pp::eps) sum += arr4[x * n + i] * arr[y * n + i] / arr3[x * n + x];
 		}
-		g.sync();
-		if (idx < i) y[idx] -= arr[idx * n + i] * ans[i];
-		g.sync();
+		arr2[t] = sum;
+		t += stride;
 	}
+
+	g.sync();
+
+	if (idx < n) {
+		double sum = 0.0;
+		for (int i = 0; i < n; ++i) sum += arr2[idx * n + i] * y[i];
+		ans[idx] = sum;
+	}
+
+	g.sync();
 
 	if (idx < n) {
 		ret[    idx] =  st[n + idx];
@@ -101,6 +140,9 @@ __global__ void rk4 (
 		s[i] = st + 2 * n * i;
 		k[i] = st + 2 * n * (i + 4);
 	}
+	double* arr2 = arr + n * n;
+	double* arr3 = arr + n * n * 2;
+	double* arr4 = arr + n * n * 3;
 	re = st + 16 * n;
 	int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -114,19 +156,19 @@ __global__ void rk4 (
 		g.sync();
 
 		// k1
-		derivation(g, n, s[0], k[0], mass, length, suffix_mass, arr, y, ans);
+		derivation(g, n, s[0], k[0], mass, length, suffix_mass, arr, arr2, arr3, arr4, y, ans);
 		// s1
 		rk4_func1(g, s[0], dt2, k[0], s[1], n);
 		// k2
-		derivation(g, n, s[1], k[1], mass, length, suffix_mass, arr, y, ans);
+		derivation(g, n, s[1], k[1], mass, length, suffix_mass, arr, arr2, arr3, arr4, y, ans);
 		// s2
 		rk4_func1(g, s[0], dt2, k[1], s[2], n);
 		// k3
-		derivation(g, n, s[2], k[2], mass, length, suffix_mass, arr, y, ans);
+		derivation(g, n, s[2], k[2], mass, length, suffix_mass, arr, arr2, arr3, arr4, y, ans);
 		// s3
 		rk4_func1(g, s[0], dt, k[2], s[3], n);
 		// k4
-		derivation(g, n, s[3], k[3], mass, length, suffix_mass, arr, y, ans);
+		derivation(g, n, s[3], k[3], mass, length, suffix_mass, arr, arr2, arr3, arr4, y, ans);
 
 		// sum
 		rk4_func2(g, s[0], dt6, k[0], k[1], k[2], k[3], re, n);
@@ -154,7 +196,7 @@ void pendulum::init () {
 	std::random_device rd;
 	std::mt19937 generator(rd());
 	std::uniform_real_distribution<> rnd_1(((double)50) / n, ((double)75) / n);
-	std::uniform_real_distribution<> rnd_2(0, M_PI);
+	std::uniform_real_distribution<> rnd_2(-M_PI / 2, M_PI / 2);
 	std::uniform_real_distribution<> rnd_3(-1 / n, 1 / n);
 	for (int i = 0; i < n; ++i) theta[i]  = rnd_2(generator);
 	for (int i = 0; i < n; ++i) omega[i]  = rnd_3(generator);
@@ -177,8 +219,8 @@ void pendulum::init () {
 	cudaMalloc(&d_suffix_mass, sizeof(double) * n);
 	cudaMalloc(      &d_theta, sizeof(double) * n);
 	cudaMalloc(      &d_omega, sizeof(double) * n);
-	cudaMalloc(         &d_st, sizeof(double) * n * 18);
-	cudaMalloc(        &d_arr, sizeof(double) * n * n);
+	cudaMalloc(         &d_st, sizeof(double) * n * 19);
+	cudaMalloc(        &d_arr, sizeof(double) * n * n * 4);
 	cudaMalloc(          &d_y, sizeof(double) * n);
 	cudaMalloc(        &d_ans, sizeof(double) * n);
 
@@ -187,6 +229,7 @@ void pendulum::init () {
 	cudaMemcpy(d_suffix_mass, suffix_mass, sizeof(double) * n, cudaMemcpyHostToDevice);
 	cudaMemcpy(      d_theta,       theta, sizeof(double) * n, cudaMemcpyHostToDevice);
 	cudaMemcpy(      d_omega,       omega, sizeof(double) * n, cudaMemcpyHostToDevice);
+	cudaMemset(         d_st,           0, sizeof(double) * n * 19);
 }
 
 void pendulum::destory () {
