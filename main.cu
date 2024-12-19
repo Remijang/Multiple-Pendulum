@@ -57,16 +57,16 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 		glBegin(GL_LINE_STRIP);
 		glColor3d(1, 0, 0);
-		glVertex2d(0, 0);
+		glVertex2d(0, 0.5);
 
 		for (int j = 0; j < n; j++) {
-			glVertex2d(20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S);
+			glVertex2d(20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S + 0.5);
 		}
 
 		glEnd();
-		circle({0, 0}, 0.01);
+		circle({0, 0.5}, 0.01);
 		for (int j = 0; j < n; j++) {
-			circle({20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S}, 0.01);
+			circle({20 * pp.posx[j] / window_dim.S, 20 * pp.posy[j] / window_dim.S + 0.5}, 0.01);
 		}
 
 		glfwSwapBuffers(window);
