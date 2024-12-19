@@ -9,7 +9,7 @@ namespace pp {
 	const double dt = 0.008;
 	const double b = 0.5;
 	const int    count = 4;
-	const double eps = 0.001;
+	const double eps = 0.01;
 }
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
