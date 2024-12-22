@@ -6,7 +6,7 @@ using namespace cooperative_groups;
 
 namespace pp {
 	const double g = 9.81;
-	const double dt = 0.008;
+	const double dt = 0.008333;
 	const int    count = 4;
 	const double eps = 0.01;
 	//const double b = 0.5;

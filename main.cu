@@ -27,11 +27,9 @@ void circle(const std::pair<double, double>& center, double radius) {
 	glEnd();
 }
 
-int main() {
-	int n;
-	std::cin >> n;
-	int t_max;
-	std::cin >> t_max;
+int main(int argc, char *argv[]) {
+	int n = atoi(argv[1]);
+	int t_max = atoi(argv[2]);
 
 	std::pair<int, int> window_dim = {1080, 1080};
 	glfwInit();
